@@ -281,7 +281,7 @@ public final class JBCefClient implements JBCefDisposable {
           });
         }
 
-        @Override
+        //@Override
         public void onFullscreenModeChange(CefBrowser browser, boolean fullscreen) {
           // Implement if needed
         }
