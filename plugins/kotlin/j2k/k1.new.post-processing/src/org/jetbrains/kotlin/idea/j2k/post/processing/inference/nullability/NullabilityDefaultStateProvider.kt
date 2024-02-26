@@ -6,7 +6,9 @@ import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor
 import org.jetbrains.kotlin.idea.j2k.post.processing.inference.common.*
 import org.jetbrains.kotlin.idea.refactoring.isAbstract
 import org.jetbrains.kotlin.lexer.KtTokens
+import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.psiUtil.isPrivate
+import org.jetbrains.kotlin.psi.psiUtil.visibilityModifier
 
 class NullabilityDefaultStateProvider : DefaultStateProvider() {
     override fun defaultStateFor(typeVariable: TypeVariable): State {
@@ -16,7 +18,15 @@ class NullabilityDefaultStateProvider : DefaultStateProvider() {
             return State.LOWER
         }
         return when (val owner = typeVariable.owner) {
-            is FunctionParameter -> if (owner.owner.isPrivate()) State.LOWER else State.UPPER
+            is FunctionParameter -> {
+                val parentOfOwners = owner.owner.parent
+                if (owner.owner.isPrivate() || (parentOfOwners is KtClass && parentOfOwners.isEnum() && parentOfOwners.visibilityModifier()?.text == "internal")) {
+                    return State.LOWER
+                } else {
+                    return State.UPPER
+                }
+            }
+
             is FunctionReturnType ->
                 if (owner.function.isAbstract()
                     || owner.function.hasModifier(KtTokens.OPEN_KEYWORD)

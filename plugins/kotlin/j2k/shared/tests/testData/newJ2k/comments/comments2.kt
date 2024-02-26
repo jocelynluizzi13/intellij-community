@@ -31,6 +31,6 @@ internal class A {
     fun foo(param1: String?, param2: String?, param3: String?) {}
 
     companion object {
-        /*it's public*/ /*and static*/ /*and final*/const val C: Int = 1
+        /*it's public*/  /*and static*/ /*and final*/const val C: Int = 1
     }
 }

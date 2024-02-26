@@ -10,7 +10,9 @@ import org.jetbrains.kotlin.nj2k.symbols.getDisplayFqName
 import org.jetbrains.kotlin.nj2k.tree.*
 import org.jetbrains.kotlin.nj2k.tree.JKClass.ClassKind.*
 import org.jetbrains.kotlin.nj2k.tree.Modality.FINAL
+import org.jetbrains.kotlin.nj2k.tree.Visibility.PRIVATE
 import org.jetbrains.kotlin.nj2k.tree.Visibility.PUBLIC
+import org.jetbrains.kotlin.nj2k.tree.Visibility.INTERNAL
 import org.jetbrains.kotlin.nj2k.tree.visitors.JKVisitorWithCommentsPrinting
 import org.jetbrains.kotlin.nj2k.types.JKContextType
 import org.jetbrains.kotlin.nj2k.types.isAnnotationMethod
@@ -751,11 +753,18 @@ class JKCodeBuilder(context: NewJ2kConverterContext) {
 
         override fun visitKtPrimaryConstructorRaw(ktPrimaryConstructor: JKKtPrimaryConstructor) {
             ktPrimaryConstructor.annotationList.accept(this)
-            renderModifiersList(ktPrimaryConstructor)
-
             val needConstructorKeyword = ktPrimaryConstructor.hasAnnotations || ktPrimaryConstructor.visibility != PUBLIC
-            if (needConstructorKeyword) {
-                printer.print("constructor")
+            val privateOnEnumClass =
+                ktPrimaryConstructor.visibility == PRIVATE && ktPrimaryConstructor.parentOfType<JKClass>()?.classKind == ENUM
+            val internalOrPrivateOnNestedPrivateClass =
+                (ktPrimaryConstructor.visibility == INTERNAL || ktPrimaryConstructor.visibility == PRIVATE) && ktPrimaryConstructor.parentOfType<JKClass>()?.visibility == PRIVATE && ktPrimaryConstructor.parentOfType<JKClass>()
+                    ?.parentOfType<JKClass>() != null
+
+            if (!privateOnEnumClass && !internalOrPrivateOnNestedPrivateClass) {
+                renderModifiersList(ktPrimaryConstructor)
+                if (needConstructorKeyword) {
+                    printer.print("constructor")
+                }
             }
 
             val hasSecondaryConstructors =

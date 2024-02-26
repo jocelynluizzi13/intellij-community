@@ -5,7 +5,7 @@ package org.jetbrains.kotlin.nj2k.tree
 import org.jetbrains.kotlin.nj2k.isInterface
 import org.jetbrains.kotlin.nj2k.tree.Modality.*
 import org.jetbrains.kotlin.nj2k.tree.OtherModifier.OVERRIDE
-import org.jetbrains.kotlin.nj2k.tree.Visibility.PUBLIC
+import org.jetbrains.kotlin.nj2k.tree.Visibility.*
 import org.jetbrains.kotlin.nj2k.tree.visitors.JKVisitor
 import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 
@@ -144,15 +144,21 @@ inline fun JKModifiersListOwner.forEachModifier(action: (JKModifierElement) -> U
 
 internal fun JKModifierElement.isRedundant(): Boolean {
     val owner = parent ?: return false
+    val containingClass = owner.parentOfType<JKClass>()
     val hasOverrideModifier = (owner as? JKOtherModifiersOwner)?.hasOtherModifier(OVERRIDE) == true
     val isOpenAndAbstractByDefault = owner.let {
-        (it is JKClass && it.isInterface()) ||
-                (it is JKDeclaration && it.parentOfType<JKClass>()?.isInterface() == true)
+        (it is JKClass && it.isInterface()) || containingClass?.isInterface() == true
     }
+    val isPrivateConstructorOnEnum = owner is JKConstructor && containingClass?.classKind == JKClass.ClassKind.ENUM
+    val isPrivateByDefault = containingClass?.visibility == PRIVATE && containingClass.parentOfType<JKClass>() == null
+    val isInsideLocalOrPrivate = containingClass?.visibility == PRIVATE || containingClass?.parentOfType<JKClass>() != null
 
     return when (modifier) {
-        PUBLIC, FINAL -> !hasOverrideModifier
+        FINAL -> !hasOverrideModifier
+        PROTECTED -> hasOverrideModifier
         OPEN, ABSTRACT -> isOpenAndAbstractByDefault
+        PRIVATE -> isPrivateConstructorOnEnum || isPrivateByDefault
+        INTERNAL -> isInsideLocalOrPrivate
         else -> false
     }
 }

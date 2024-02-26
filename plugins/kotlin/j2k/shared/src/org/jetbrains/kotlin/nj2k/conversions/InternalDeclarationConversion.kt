@@ -8,6 +8,7 @@ import org.jetbrains.kotlin.nj2k.*
 import org.jetbrains.kotlin.nj2k.tree.*
 import org.jetbrains.kotlin.nj2k.tree.JKClass.ClassKind.*
 import org.jetbrains.kotlin.nj2k.tree.Visibility.*
+import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 
 class InternalDeclarationConversion(context: NewJ2kConverterContext) : RecursiveConversion(context) {
     context(KtAnalysisSession)
@@ -36,6 +37,9 @@ class InternalDeclarationConversion(context: NewJ2kConverterContext) : Recursive
         }
 
         element.visibility = when {
+            element.safeAs<JKOtherModifiersOwner>()
+                ?.hasOtherModifier(OtherModifier.INNER) == true && containingClassVisibility != INTERNAL -> PUBLIC
+
             containingClassKind == INTERFACE || containingClassKind == ANNOTATION ->
                 PUBLIC
 

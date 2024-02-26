@@ -14,9 +14,7 @@ import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
 import org.jetbrains.kotlin.idea.caches.resolve.resolveToDescriptorIfAny
 import org.jetbrains.kotlin.idea.core.implicitVisibility
-import org.jetbrains.kotlin.idea.search.usagesSearch.descriptor
 import org.jetbrains.kotlin.psi.KtDeclaration
-import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtPropertyAccessor
 import org.jetbrains.kotlin.psi.declarationVisitor
 import org.jetbrains.kotlin.psi.psiUtil.containingClassOrObject
@@ -60,13 +58,6 @@ class RedundantVisibilityModifierInspection : AbstractKotlinInspection(), Cleanu
                 else -> null
             } ?: return null
 
-            if (redundantVisibility == PUBLIC_KEYWORD
-                && declaration is KtProperty
-                && declaration.hasModifier(OVERRIDE_KEYWORD)
-                && declaration.isVar
-                && declaration.setterVisibility().let { it != null && it != DescriptorVisibilities.PUBLIC }
-            ) return null
-
             return redundantVisibility
         }
 
@@ -77,18 +68,6 @@ class RedundantVisibilityModifierInspection : AbstractKotlinInspection(), Cleanu
             val isExplicitApiMode = declaration.languageVersionSettings.getFlag(AnalysisFlags.explicitApiMode) != ExplicitApiMode.DISABLED
             if (!isExplicitApiMode) return false
             return (declaration.resolveToDescriptorIfAny() as? DeclarationDescriptorWithVisibility)?.isEffectivelyPublicApi == true
-        }
-
-        private fun KtProperty.setterVisibility(): DescriptorVisibility? {
-            val descriptor = descriptor as? PropertyDescriptor ?: return null
-            if (setter?.visibilityModifier() != null) {
-                val visibility = descriptor.setter?.visibility
-                if (visibility != null) return visibility
-            }
-            return (descriptor as? CallableMemberDescriptor)
-                ?.overriddenDescriptors
-                ?.firstNotNullOfOrNull { (it as? PropertyDescriptor)?.setter }
-                ?.visibility
         }
     }
 }
